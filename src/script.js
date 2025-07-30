@@ -598,9 +598,9 @@ function updateGroupTypingAnimation(groupIndex, currentTime) {
             completedText += group.segments[i].text + ' ';
         }
         
-        // Add partial current segment
+        // Add partial current segment with 90% completion rule
         const currentSegmentText = currentSegment.text;
-        const typedLength = Math.floor(currentSegmentText.length * Math.min(1, segmentProgress));
+        const typedLength = segmentProgress >= 0.90 ? currentSegmentText.length : Math.floor(currentSegmentText.length * segmentProgress);
         const typedCurrentText = currentSegmentText.substring(0, typedLength);
         
         // Create cinematic typing effect
