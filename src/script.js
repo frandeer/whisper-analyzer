@@ -630,30 +630,62 @@ function applyCinematicTyping(element, text, showCursor) {
         return;
     }
     
-    // Text is getting longer - animate new characters only
-    const newCharsStartIndex = currentText.length;
-    const newChars = text.slice(newCharsStartIndex);
+    // Implement natural character-by-character typing
+    const targetLength = text.length;
+    const currentLength = currentText.length;
     
-    // Build HTML with existing text + new animated characters
-    let htmlContent = currentText; // Existing text without animation
-    
-    Array.from(newChars).forEach((char, index) => {
-        if (char === ' ') {
-            htmlContent += ' ';
-        } else {
-            const delay = index * 80; // Faster for smoother flow
-            htmlContent += `<span class="char-animate">${char}</span>`;
+    if (currentLength < targetLength) {
+        // Natural typing speed with slight randomness (40-100ms per character)
+        const baseSpeed = 60;
+        const randomFactor = Math.random() * 0.8 + 0.6; // 0.6 ~ 1.4 
+        const typingSpeed = baseSpeed * randomFactor;
+        
+        function typeNextCharacter() {
+            const currentDisplayed = element.textContent?.replace('|', '') || '';
+            
+            if (currentDisplayed.length < targetLength) {
+                // Add next character
+                const nextChar = text[currentDisplayed.length];
+                const newText = currentDisplayed + nextChar;
+                
+                // Show cursor while typing
+                element.innerHTML = newText + '<span class="typing-cursor"></span>';
+                
+                // Adjust speed based on character type
+                let nextDelay = typingSpeed;
+                if (nextChar === ',' || nextChar === '.' || nextChar === '!' || nextChar === '?') {
+                    nextDelay *= 2.5; // Pause longer after punctuation
+                } else if (nextChar === ' ') {
+                    nextDelay *= 0.7; // Faster on spaces
+                } else if (nextChar === '\n') {
+                    nextDelay *= 3; // Longer pause for line breaks
+                }
+                
+                // Add slight randomness to make it feel more natural
+                nextDelay += (Math.random() - 0.5) * 20;
+                nextDelay = Math.max(20, nextDelay); // Minimum 20ms
+                
+                globalAnimationId = setTimeout(typeNextCharacter, nextDelay);
+            } else {
+                // Typing complete
+                if (showCursor) {
+                    element.innerHTML = text + '<span class="typing-cursor"></span>';
+                } else {
+                    element.textContent = text;
+                }
+            }
         }
-    });
-    
-    // Add blinking cursor if still typing
-    if (showCursor) {
-        htmlContent += '<span class="typing-cursor"></span>';
+        
+        // Start typing from current position
+        typeNextCharacter();
+    } else {
+        // Text is complete, just show final state
+        if (showCursor) {
+            element.innerHTML = text + '<span class="typing-cursor"></span>';
+        } else {
+            element.textContent = text;
+        }
     }
-    
-    element.innerHTML = htmlContent;
-    
-    // No animation needed - just display the characters
 }
 
 function clearSubtitleDisplay(force = false) {
