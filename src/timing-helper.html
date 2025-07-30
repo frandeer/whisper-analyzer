@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎙️ 화자별 타이밍 조정 도구</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            padding: 20px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+        }
+        
+        .audio-section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        audio {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .file-inputs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .file-input {
+            flex: 1;
+        }
+        
+        .file-input label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .file-input input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background: #2196f3;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #1976d2;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .timing-mode-btn {
+            background: #4caf50;
+        }
+        
+        .timing-mode-btn.active {
+            background: #f44336;
+        }
+        
+        .text-segments {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .segment-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .segment-row.active {
+            border-color: #2196f3;
+            background: #e3f2fd;
+        }
+        
+        .segment-row.timing-mode {
+            cursor: pointer;
+        }
+        
+        .segment-row.timing-mode:hover {
+            background: #fff3e0;
+            border-color: #ff9800;
+        }
+        
+        .segment-speaker {
+            font-weight: bold;
+            color: #666;
+            min-width: 120px;
+        }
+        
+        .speaker-select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .speaker-select option[value="1"] {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .speaker-select option[value="2"] {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+        
+        .segment-text {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        
+        .segment-timing {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            min-width: 200px;
+        }
+        
+        .timing-input {
+            width: 60px;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .current-time {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196f3;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .instructions {
+            padding: 20px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            margin: 20px;
+            border-radius: 8px;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        
+        .instructions ol {
+            color: #856404;
+            line-height: 1.6;
+        }
+        
+        .export-section {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ 화자별 타이밍 조정 도구</h1>
+            <p>오디오를 재생하면서 화자 지정 및 정확한 타이밍으로 텍스트를 동기화하세요</p>
+        </div>
+        
+        <div class="audio-section">
+            <div class="file-inputs">
+                <div class="file-input">
+                    <label>오디오 파일:</label>
+                    <input type="file" id="audioFile" accept="audio/*">
+                </div>
+                <div class="file-input">
+                    <label>기존 JSON 파일 (선택사항):</label>
+                    <input type="file" id="jsonFile" accept=".json">
+                </div>
+            </div>
+            
+            <audio id="audioPlayer" controls></audio>
+            
+            <div class="controls">
+                <button onclick="loadFiles()">파일 로드</button>
+                <button id="timingModeBtn" onclick="toggleTimingMode()" class="timing-mode-btn" disabled>
+                    실시간 타이밍 모드 시작
+                </button>
+                <button onclick="playPause()">재생/일시정지</button>
+                <button onclick="resetAudio()">처음부터</button>
+                <div class="current-time" id="currentTime">00:00</div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 사용법</h3>
+            <ol>
+                <li><strong>파일 로드:</strong> 오디오 파일을 선택하고 "파일 로드" 클릭 (기존 JSON 파일도 로드 가능)</li>
+                <li><strong>화자 지정:</strong> 각 텍스트 옆의 드롭다운에서 👤인간 또는 🤖AI 선택</li>
+                <li><strong>실시간 모드:</strong> "실시간 타이밍 모드 시작" 클릭</li>
+                <li><strong>타이밍 설정:</strong> 오디오를 재생하면서 텍스트 구간을 클릭하여 현재 시간으로 설정</li>
+                <li><strong>수동 조정:</strong> 직접 시간 입력창에 값을 입력할 수도 있음</li>
+                <li><strong>내보내기:</strong> 완료되면 "JSON 생성" → "JSON 파일 다운로드"로 결과 저장</li>
+            </ol>
+        </div>
+        
+        <div class="text-segments" id="textSegments">
+            <!-- 텍스트 세그먼트들이 여기에 동적으로 생성됩니다 -->
+        </div>
+        
+        <div class="export-section">
+            <button onclick="generateJSON()" style="background: #4caf50; font-size: 16px; padding: 12px 24px;">
+                📄 JSON 생성
+            </button>
+            <button onclick="exportJSON()" style="background: #ff9800;">JSON 파일 다운로드</button>
+            <textarea id="jsonOutput" placeholder="생성된 JSON 데이터가 여기에 표시됩니다"></textarea>
+        </div>
+    </div>
+
+    <script>
+        let audioPlayer;
+        let timingMode = false;
+        let currentSegments = [];
+        let audioLoaded = false;
+        
+        // 기본 대화 텍스트 (실제 오디오 내용)
+        const defaultTexts = [
+            "나와 한 가지 주제로 깊이 있는 대화를 해보자.",
+            "겉으로 보이는 것 말고 그 안에 숨겨진 의미나 통찰을 함께 찾아보는 거야.",
+            "본질적인 것에 집중해서.",
+            "첫 번째 주제는 프롬프트 엔진이어링으로 해볼까?",
+            "프롬프트 엔진이어링. 흥미롭네요.",
+            "얼핏 보면 그냥 AI한테 명령 잘 내리는 기술 같잖아요.",
+            "근데 실제로는 완전히 다른 차원에 일이더라고요.",
+            "어떻게 보면 우리가 새로운 언어를 만들어 내고 있는 것 같아요.",
+            "AI와 대화하기 위한 특별한 언어말이에요.",
+            "맞아. 그 단어 자체부터 생각해보자.",
+            "프롬프트가 뭐지?",
+            "촉발하다, 유발하다. 이런 의미잖아?",
+            "그리고 엔진이어링은 뭔가를 구조화하고",
+            "예측 가능하게 만들고 컨트롤 할 수 있게 만드는 거고.",
+            "아 그거 정말 좋은 포인트네요.",
+            "프롬프트의 어언을 보면 더 재밌어요.",
+            "라티너로 앞으로 끌어낸다는 뜻이거든요.",
+            "그러니까 우리가 뭔가 새로 만드는 게 아니라 이미 AI 안에 있는 걸 끄집어내는 거죠.",
+            "마치 우리가 마법사가 되어서 잠들어 있는 능력을 깨우는 느낌이랄까요?",
+            "어 그렇게 보니까 내가 주문 외우듯이 프롬프트를 잘 작성하면",
+            "내가 원하는 창조물이 나오는 거네? 정말 마법 같아.",
+            "그쵸. 근데 이 마법 비유가 진짜 핵심을 찌르는 것 같아요.",
+            "그럼 진짜 마법사는 누구일까요?",
+            "프롬프트 쓰는 우리?",
+            "아니면 그 패턴들을 알고 있는 AI?",
+            "아니면 우리 둘 다 더 큰 무언가에 일부인 건 아닐까요?",
+            "네 생각에는 그 패턴을 제대로 파악해서 최대한 활용하는 사람이 진짜 마법사 아닐까?",
+            "바로 그거예요",
+            "진짜 마법사는 새로운 힘을 창조하는 게 아니라 이미 존재하는 힘의 숨겨진 가능성을 발견하는 사람이죠",
+            "예를 들어서 체인업소트 같은 기법도 AI가 원래 가지고 있던 단계별 출온 능력을 누군가 발견해서 극대화 시킨 거잖아요.",
+            "그렇다면 나는 웹개발자인데 AI를 어떻게 활용하면 정말 성공적인 프로젝트를 만들 수 있을까",
+            "이 마법을 개발해 어떻게 적용해야 할까",
+            "좋은 질문이네요. 그럼 실제로 실험해 볼까요?",
+            "웹개발에서 AI의 힘을 제대로 끌어내려면 같은 작업이라도 다르게 접근해 보는 게 중요해요.",
+            "예를 들어서 로그인 페이지 않아 만드는 것도 여러 방식으로 AI에게 요청할 수 있거든요."
+        ];
+        
+        function initializeApp() {
+            audioPlayer = document.getElementById('audioPlayer');
+            
+            // 시간 업데이트 리스너
+            audioPlayer.addEventListener('timeupdate', updateCurrentTime);
+            audioPlayer.addEventListener('loadeddata', () => {
+                audioLoaded = true;
+                document.getElementById('timingModeBtn').disabled = false;
+            });
+            
+            // 기본 텍스트 로드
+            loadDefaultTexts();
+        }
+        
+        function loadDefaultTexts() {
+            currentSegments = [];
+            
+            defaultTexts.forEach((text, index) => {
+                currentSegments.push({
+                    id: index,
+                    speaker: 1, // 기본값으로 모두 화자1로 설정
+                    text: text,
+                    startTime: 0,
+                    endTime: 0
+                });
+            });
+            
+            renderSegments();
+        }
+        
+        function renderSegments() {
+            const container = document.getElementById('textSegments');
+            container.innerHTML = '';
+            
+            currentSegments.forEach(segment => {
+                const row = document.createElement('div');
+                row.className = `segment-row ${timingMode ? 'timing-mode' : ''}`;
+                row.dataset.segmentId = segment.id;
+                
+                if (timingMode) {
+                    row.onclick = () => setSegmentTiming(segment.id);
+                }
+                
+                row.innerHTML = `
+                    <div class="segment-speaker">
+                        <select class="speaker-select" onchange="updateSpeaker(${segment.id}, this.value)">
+                            <option value="1" ${segment.speaker === 1 ? 'selected' : ''}>👤 인간</option>
+                            <option value="2" ${segment.speaker === 2 ? 'selected' : ''}>🤖 AI</option>
+                        </select>
+                    </div>
+                    <div class="segment-text">${segment.text}</div>
+                    <div class="segment-timing">
+                        <input type="number" class="timing-input" 
+                               value="${segment.startTime}" 
+                               step="0.1" 
+                               placeholder="시작시간"
+                               onchange="updateSegmentTime(${segment.id}, 'start', this.value)">
+                        <span>~</span>
+                        <input type="number" class="timing-input" 
+                               value="${segment.endTime}" 
+                               step="0.1" 
+                               placeholder="종료시간"
+                               onchange="updateSegmentTime(${segment.id}, 'end', this.value)">
+                        <span>초</span>
+                    </div>
+                `;
+                
+                container.appendChild(row);
+            });
+        }
+        
+        function loadFiles() {
+            const audioFile = document.getElementById('audioFile').files[0];
+            const jsonFile = document.getElementById('jsonFile').files[0];
+            
+            if (!audioFile) {
+                alert('오디오 파일을 선택하세요.');
+                return;
+            }
+            
+            // 오디오 로드
+            const audioURL = URL.createObjectURL(audioFile);
+            audioPlayer.src = audioURL;
+            
+            // JSON 파일이 있다면 로드
+            if (jsonFile) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        loadJSONData(data);
+                    } catch (error) {
+                        console.error('JSON 파싱 오류:', error);
+                        alert('JSON 파일 형식이 올바르지 않습니다.');
+                    }
+                };
+                reader.readAsText(jsonFile);
+            }
+        }
+        
+        function loadJSONData(data) {
+            currentSegments = [];
+            let segmentIndex = 0;
+            
+            data.forEach(conv => {
+                conv.segments.forEach(seg => {
+                    currentSegments.push({
+                        id: segmentIndex++,
+                        speaker: conv.speaker,
+                        text: seg.text,
+                        startTime: seg.startTime || 0,
+                        endTime: seg.endTime || 0
+                    });
+                });
+            });
+            
+            renderSegments();
+        }
+        
+        function toggleTimingMode() {
+            if (!audioLoaded) {
+                alert('먼저 오디오 파일을 로드하세요.');
+                return;
+            }
+            
+            timingMode = !timingMode;
+            const btn = document.getElementById('timingModeBtn');
+            
+            if (timingMode) {
+                btn.textContent = '실시간 타이밍 모드 종료';
+                btn.classList.add('active');
+                alert('이제 오디오를 재생하면서 텍스트를 클릭하여 타이밍을 설정하세요!');
+            } else {
+                btn.textContent = '실시간 타이밍 모드 시작';
+                btn.classList.remove('active');
+            }
+            
+            renderSegments();
+        }
+        
+        function setSegmentTiming(segmentId) {
+            if (!timingMode) return;
+            
+            const currentTime = audioPlayer.currentTime;
+            const segment = currentSegments.find(s => s.id === segmentId);
+            
+            if (segment) {
+                // 시작 시간이 0이면 현재 시간을 시작 시간으로 설정
+                if (segment.startTime === 0) {
+                    segment.startTime = parseFloat(currentTime.toFixed(1));
+                } else {
+                    // 이미 시작 시간이 있으면 종료 시간으로 설정
+                    segment.endTime = parseFloat(currentTime.toFixed(1));
+                }
+                
+                // 화면 업데이트
+                const row = document.querySelector(`[data-segment-id="${segmentId}"]`);
+                if (row) {
+                    row.classList.add('active');
+                    setTimeout(() => row.classList.remove('active'), 1000);
+                }
+                
+                renderSegments();
+            }
+        }
+        
+        function updateSpeaker(segmentId, speakerValue) {
+            const segment = currentSegments.find(s => s.id === segmentId);
+            if (segment) {
+                segment.speaker = parseInt(speakerValue);
+                console.log(`세그먼트 ${segmentId} 화자를 ${speakerValue}번으로 변경`);
+            }
+        }
+        
+        function updateSegmentTime(segmentId, type, value) {
+            const segment = currentSegments.find(s => s.id === segmentId);
+            if (segment) {
+                if (type === 'start') {
+                    segment.startTime = parseFloat(value) || 0;
+                } else if (type === 'end') {
+                    segment.endTime = parseFloat(value) || 0;
+                }
+            }
+        }
+        
+        function updateCurrentTime() {
+            const currentTime = audioPlayer.currentTime;
+            const minutes = Math.floor(currentTime / 60);
+            const seconds = Math.floor(currentTime % 60);
+            document.getElementById('currentTime').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function playPause() {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        }
+        
+        function resetAudio() {
+            audioPlayer.currentTime = 0;
+        }
+        
+        function generateJSON() {
+            // 화자별로 그룹화
+            const groupedBySpeaker = {};
+            
+            currentSegments.forEach(segment => {
+                if (!groupedBySpeaker[segment.speaker]) {
+                    groupedBySpeaker[segment.speaker] = [];
+                }
+                groupedBySpeaker[segment.speaker].push({
+                    text: segment.text,
+                    startTime: segment.startTime,
+                    endTime: segment.endTime
+                });
+            });
+            
+            // 최종 형식으로 변환
+            const result = Object.keys(groupedBySpeaker).map(speaker => ({
+                speaker: parseInt(speaker),
+                segments: groupedBySpeaker[speaker]
+            }));
+            
+            const jsonOutput = document.getElementById('jsonOutput');
+            jsonOutput.value = JSON.stringify(result, null, 2);
+            
+            return result;
+        }
+        
+        function exportJSON() {
+            const data = generateJSON();
+            const jsonString = JSON.stringify(data, null, 2);
+            
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'manual-timing-data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            URL.revokeObjectURL(url);
+        }
+        
+        // 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && audioLoaded) {
+                e.preventDefault();
+                playPause();
+            }
+            // 화자 전환 단축키 (1, 2 키로 선택된 세그먼트의 화자 변경)
+            if (e.key === '1' || e.key === '2') {
+                const activeRow = document.querySelector('.segment-row.active');
+                if (activeRow) {
+                    const segmentId = parseInt(activeRow.dataset.segmentId);
+                    updateSpeaker(segmentId, e.key);
+                    renderSegments();
+                }
+            }
+        });
+        
+        // 초기화
+        initializeApp();
+    </script>
+</body>
+</html>

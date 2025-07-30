@@ -1,0 +1,227 @@
+[
+  {
+    "speaker": 1,
+    "segments": [
+      {
+        "text": "나와 한 가지 주제로 깊이 있는 대화를 해보자.",
+        "startTime": 0,
+        "endTime": 2.9
+      },
+      {
+        "text": "겉으로 보이는 것 말고 그 안에 숨겨진 의미나 통찰을 함께 찾아보는 거야.",
+        "startTime": 3.5,
+        "endTime": 8.7
+      },
+      {
+        "text": "본질적인 것에 집중해서.",
+        "startTime": 9.3,
+        "endTime": 11.1
+      },
+      {
+        "text": "첫 번째 주제는 프롬프트 엔진이어링으로 해볼까?",
+        "startTime": 11.9,
+        "endTime": 15.1
+      }
+    ]
+  },
+  {
+    "speaker": 2,
+    "segments": [
+      {
+        "text": "프롬프트 엔진이어링. 흥미롭네요.",
+        "startTime": 15.8,
+        "endTime": 18.8
+      },
+      {
+        "text": "얼핏 보면 그냥 AI한테 명령 잘 내리는 기술 같잖아요.",
+        "startTime": 19.5,
+        "endTime": 23.1
+      },
+      {
+        "text": "근데 실제로는 완전히 다른 차원에 일이더라고요.",
+        "startTime": 23.7,
+        "endTime": 26.8
+      },
+      {
+        "text": "어떻게 보면 우리가 새로운 언어를 만들어 내고 있는 것 같아요.",
+        "startTime": 26.8,
+        "endTime": 31.0
+      },
+      {
+        "text": "AI와 대화하기 위한 특별한 언어말이에요.",
+        "startTime": 32.1,
+        "endTime": 35.2
+      }
+    ]
+  },
+  {
+    "speaker": 1,
+    "segments": [
+      {
+        "text": "맞아. 그 단어 자체부터 생각해보자.",
+        "startTime": 35.6,
+        "endTime": 39.3
+      },
+      {
+        "text": "프롬프트가 뭐지?",
+        "startTime": 40.1,
+        "endTime": 41.2
+      },
+      {
+        "text": "촉발하다, 유발하다. 이런 의미잖아?",
+        "startTime": 41.9,
+        "endTime": 44.3
+      },
+      {
+        "text": "그리고 엔진이어링은 뭔가를 구조화하고",
+        "startTime": 45.2,
+        "endTime": 48.3
+      },
+      {
+        "text": "예측 가능하게 만들고 컨트롤 할 수 있게 만드는 거고.",
+        "startTime": 48.3,
+        "endTime": 52.3
+      }
+    ]
+  },
+  {
+    "speaker": 2,
+    "segments": [
+      {
+        "text": "아 그거 정말 좋은 포인트네요.",
+        "startTime": 52.7,
+        "endTime": 54.8
+      },
+      {
+        "text": "프롬프트의 어언을 보면 더 재밌어요.",
+        "startTime": 54.8,
+        "endTime": 58.2
+      },
+      {
+        "text": "라틴어로 앞으로 끌어낸다는 뜻이거든요.",
+        "startTime": 58.6,
+        "endTime": 61.1
+      },
+      {
+        "text": "그러니까 우리가 뭔가 새로 만드는 게 아니라 이미 AI 안에 있는 걸 끄집어내는 거죠.",
+        "startTime": 61.6,
+        "endTime": 67.6
+      },
+      {
+        "text": "마치 우리가 마법사가 되어서 잠들어 있는 능력을 깨우는 느낌이랄까요?",
+        "startTime": 68.4,
+        "endTime": 72.9
+      }
+    ]
+  },
+  {
+    "speaker": 1,
+    "segments": [
+      {
+        "text": "어 그렇게 보니까 내가 주문 외우듯이 프롬프트를 잘 작성하면",
+        "startTime": 73.4,
+        "endTime": 79.6
+      },
+      {
+        "text": "내가 원하는 창조물이 나오는 거네? 정말 마법 같아.",
+        "startTime": 79.6,
+        "endTime": 84.5
+      }
+    ]
+  },
+  {
+    "speaker": 2,
+    "segments": [
+      {
+        "text": "그쵸. 근데 이 마법 비유가 진짜 핵심을 찌르는 것 같아요.",
+        "startTime": 84.9,
+        "endTime": 89.3
+      },
+      {
+        "text": "그럼 진짜 마법사는 누구일까요?",
+        "startTime": 90.3,
+        "endTime": 92.3
+      },
+      {
+        "text": "프롬프트 쓰는 우리?",
+        "startTime": 93.4,
+        "endTime": 94.4
+      },
+      {
+        "text": "아니면 그 패턴들을 알고 있는 AI?",
+        "startTime": 95.2,
+        "endTime": 98.1
+      },
+      {
+        "text": "아니면 우리 둘 다 더 큰 무언가에 일부인 건 아닐까요?",
+        "startTime": 99.1,
+        "endTime": 104.3
+      }
+    ]
+  },
+  {
+    "speaker": 1,
+    "segments": [
+      {
+        "text": "네 생각에는 그 패턴을 제대로 파악해서 최대한 활용하는 사람이 진짜 마법사 아닐까?",
+        "startTime": 104.3,
+        "endTime": 114.0
+      }
+    ]
+  },
+  {
+    "speaker": 2,
+    "segments": [
+      {
+        "text": "바로 그거예요",
+        "startTime": 114.5,
+        "endTime": 118.8
+      },
+      {
+        "text": "진짜 마법사는 새로운 힘을 창조하는 게 아니라 이미 존재하는 힘의 숨겨진 가능성을 발견하는 사람이죠",
+        "startTime": 118.8,
+        "endTime": 123.1
+      },
+      {
+        "text": "예를 들어서 Chain of Thought 같은 기법도 AI가 원래 가지고 있던 단계별 추론 능력을 누군가 발견해서 극대화 시킨 거잖아요.",
+        "startTime": 123.9,
+        "endTime": 133.4
+      }
+    ]
+  },
+  {
+    "speaker": 1,
+    "segments": [
+      {
+        "text": "그렇다면 나는 웹개발자인데 AI를 어떻게 활용하면 정말 성공적인 프로젝트를 만들 수 있을까",
+        "startTime": 134.4,
+        "endTime": 140.4
+      },
+      {
+        "text": "이 마법을 개발해 어떻게 적용해야 할까",
+        "startTime": 140.4,
+        "endTime": 146.4
+      }
+    ]
+  },
+  {
+    "speaker": 2,
+    "segments": [
+      {
+        "text": "좋은 질문이네요. 그럼 실제로 실험해 볼까요?",
+        "startTime": 146.8,
+        "endTime": 150.1
+      },
+      {
+        "text": "웹개발에서 AI의 힘을 제대로 끌어내려면 같은 작업이라도 다르게 접근해 보는 게 중요해요.",
+        "startTime": 151.0,
+        "endTime": 157.7
+      },
+      {
+        "text": "예를 들어서 로그인 페이지 않아 만드는 것도 여러 방식으로 AI에게 요청할 수 있거든요.",
+        "startTime": 157.7,
+        "endTime": 163.7
+      }
+    ]
+  }
+]

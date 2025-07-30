@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오디오 분석기 - 자동 타이밍 생성</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .audio-section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .file-input {
+            margin-bottom: 20px;
+        }
+        
+        .file-input input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            width: 100%;
+            background: #fafafa;
+        }
+        
+        audio {
+            width: 100%;
+            margin: 20px 0;
+        }
+        
+        .analysis-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #2196f3;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #1976d2;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .waveform-container {
+            width: 100%;
+            height: 200px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .waveform {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .analysis-results {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .segment-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+        }
+        
+        .segment-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .segment-item:last-child {
+            border-bottom: none;
+        }
+        
+        .segment-time {
+            font-weight: bold;
+            color: #2196f3;
+            min-width: 120px;
+        }
+        
+        .segment-text {
+            flex: 1;
+            margin: 0 15px;
+        }
+        
+        .progress {
+            margin: 20px 0;
+            text-align: center;
+            color: #666;
+        }
+        
+        .export-section {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 오디오 자동 분석기</h1>
+            <p>Web Audio API를 사용해 오디오 파일을 분석하고 자동으로 세그먼트 타이밍을 생성합니다</p>
+        </div>
+        
+        <div class="audio-section">
+            <div class="file-input">
+                <label>오디오 파일 선택:</label>
+                <input type="file" id="audioFile" accept="audio/*">
+            </div>
+            
+            <audio id="audioPlayer" controls style="display: none;">
+                브라우저가 오디오를 지원하지 않습니다.
+            </audio>
+            
+            <div class="analysis-controls">
+                <button id="analyzeBtn" onclick="analyzeAudio()" disabled>오디오 분석</button>
+                <button id="detectSilenceBtn" onclick="detectSilence()" disabled>무음 구간 탐지</button>
+                <button id="speechRecognitionBtn" onclick="startSpeechRecognition()" disabled>음성 인식</button>
+                <button id="generateTimingBtn" onclick="generateAutoTiming()" disabled>자동 타이밍 생성</button>
+            </div>
+            
+            <div class="waveform-container">
+                <canvas class="waveform" id="waveform"></canvas>
+            </div>
+            
+            <div class="progress" id="progress">오디오 파일을 선택하세요</div>
+        </div>
+        
+        <div class="analysis-results">
+            <h3>분석 결과</h3>
+            <div class="segment-list" id="segmentList">
+                <div class="segment-item">
+                    <div class="segment-time">분석 대기중</div>
+                    <div class="segment-text">오디오 파일을 업로드하고 분석을 시작하세요</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="export-section">
+            <h3>생성된 JSON 데이터</h3>
+            <textarea id="jsonOutput" placeholder="분석 완료 후 여기에 JSON 데이터가 표시됩니다"></textarea>
+            <div style="margin-top: 10px;">
+                <button onclick="copyToClipboard()">클립보드에 복사</button>
+                <button onclick="downloadJSON()">JSON 파일 다운로드</button>
+                <button onclick="applyToChat()">채팅 앱에 적용</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let audioContext;
+        let audioBuffer;
+        let audioData;
+        let silenceSegments = [];
+        let generatedTimings = [];
+        let speechRecognitionResults = [];
+        
+        // 대화 텍스트 (기존 데이터)
+        const conversationTexts = [
+            "나와 한가지 주제로 깊이 있는 대화를 해보자. 겉으로 보이는 것 말고 그 안에 숨겨진 의미나 통찰을 함께 찾아보는 거야. 본질적인 것에 집중해서... 첫 번째 주제는 프롬프트 엔지니어링으로 해볼까?",
+            "프롬프트 엔지니어링... 흥미롭네요. 얼핏 보면 그냥 AI한테 명령 잘 내리는 기술 같잖아요? 근데 실제로는 완전히 다른 차원의 일이더라고요. 어떻게 보면 우리가 새로운 언어를 만들어내고 있는 거 같아요. AI와 대화하기 위한 특별한 언어 말이에요.",
+            "맞아, 그 단어 자체부터 생각해보자. '프롬프트'가 뭐지? 촉발하다, 유발하다... 이런 의미잖아. 그리고 '엔지니어링'은 뭔가를 구조화하고, 예측 가능하게 만들고, 컨트롤할 수 있게 만드는 거고.",
+            "아! 그거 정말 좋은 포인트네요. 프롬프트의 어원을 보면 더 재밌어요. 라틴어로 '앞으로 끌어낸다'는 뜻이거든요. 그러니까... 우리가 뭔가 새로 만드는 게 아니라, 이미 AI 안에 있는 걸 끄집어내는 거죠. 마치 우리가 마법사가 되어서 잠들어 있는 능력을 깨우는 느낌이랄까요?",
+            "오, 그렇게 보니까... 내가 주문 외우듯이 프롬프트를 잘 작성하면, 내가 원하는 창조물이 나오는 거네? 정말 마법 같아.",
+            "그쵸! 근데 이 마법 비유가 진짜 핵심을 찌르는 것 같아요. 그럼 진짜 마법사는 누굴까요? 프롬프트 쓰는 우리? 아니면 그 패턴들을 알고 있는 AI? 아니면... 우리 둘 다 더 큰 무언가의 일부인 건 아닐까요?"
+        ];
+        
+        const speakerPattern = [1, 2, 1, 2, 1, 2]; // 화자 패턴
+        
+        document.getElementById('audioFile').addEventListener('change', handleFileSelect);
+        
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('progress').textContent = '오디오 파일 로딩 중...';
+            
+            try {
+                // Audio 요소에 파일 설정
+                const audioPlayer = document.getElementById('audioPlayer');
+                audioPlayer.src = URL.createObjectURL(file);
+                audioPlayer.style.display = 'block';
+                
+                // Web Audio API 초기화
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                // 파일을 ArrayBuffer로 읽기
+                const arrayBuffer = await file.arrayBuffer();
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                document.getElementById('analyzeBtn').disabled = false;
+                document.getElementById('speechRecognitionBtn').disabled = false;
+                document.getElementById('progress').textContent = '분석 준비 완료';
+                
+                drawWaveform();
+                
+            } catch (error) {
+                console.error('오디오 로딩 실패:', error);
+                document.getElementById('progress').textContent = '오디오 로딩 실패';
+            }
+        }
+        
+        function drawWaveform() {
+            const canvas = document.getElementById('waveform');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            const data = audioBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / canvas.width);
+            const amp = canvas.height / 2;
+            
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, amp);
+            ctx.strokeStyle = '#2196f3';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i < canvas.width; i++) {
+                let min = 1.0;
+                let max = -1.0;
+                
+                for (let j = 0; j < step; j++) {
+                    const datum = data[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                
+                ctx.lineTo(i, (1 + min) * amp);
+                ctx.lineTo(i, (1 + max) * amp);
+            }
+            
+            ctx.stroke();
+        }
+        
+        async function analyzeAudio() {
+            document.getElementById('progress').textContent = '오디오 분석 중...';
+            document.getElementById('detectSilenceBtn').disabled = false;
+            
+            // 오디오 데이터 분석
+            audioData = audioBuffer.getChannelData(0);
+            
+            // 볼륨 분석
+            const windowSize = Math.floor(audioBuffer.sampleRate * 0.1); // 100ms 윈도우
+            const volumeData = [];
+            
+            for (let i = 0; i < audioData.length; i += windowSize) {
+                let sum = 0;
+                const end = Math.min(i + windowSize, audioData.length);
+                
+                for (let j = i; j < end; j++) {
+                    sum += Math.abs(audioData[j]);
+                }
+                
+                volumeData.push(sum / (end - i));
+            }
+            
+            // 결과 표시
+            updateSegmentList([
+                { time: '분석 완료', text: `총 길이: ${audioBuffer.duration.toFixed(2)}초, 샘플레이트: ${audioBuffer.sampleRate}Hz` }
+            ]);
+            
+            document.getElementById('progress').textContent = '분석 완료 - 무음 구간 탐지를 시작하세요';
+        }
+        
+        function detectSilence() {
+            document.getElementById('progress').textContent = '무음 구간 탐지 중...';
+            
+            const threshold = 0.01; // 무음 임계값
+            const minSilenceDuration = 0.5; // 최소 무음 길이 (초)
+            const windowSize = Math.floor(audioBuffer.sampleRate * 0.1); // 100ms
+            
+            silenceSegments = [];
+            let silenceStart = null;
+            
+            for (let i = 0; i < audioData.length; i += windowSize) {
+                let sum = 0;
+                const end = Math.min(i + windowSize, audioData.length);
+                
+                for (let j = i; j < end; j++) {
+                    sum += Math.abs(audioData[j]);
+                }
+                
+                const volume = sum / (end - i);
+                const currentTime = i / audioBuffer.sampleRate;
+                
+                if (volume < threshold) {
+                    // 무음 시작
+                    if (silenceStart === null) {
+                        silenceStart = currentTime;
+                    }
+                } else {
+                    // 소리 시작
+                    if (silenceStart !== null) {
+                        const silenceDuration = currentTime - silenceStart;
+                        if (silenceDuration >= minSilenceDuration) {
+                            silenceSegments.push({
+                                start: silenceStart,
+                                end: currentTime,
+                                duration: silenceDuration
+                            });
+                        }
+                        silenceStart = null;
+                    }
+                }
+            }
+            
+            // 결과 표시
+            const results = silenceSegments.map(seg => ({
+                time: `${seg.start.toFixed(2)}s - ${seg.end.toFixed(2)}s`,
+                text: `무음 구간 (${seg.duration.toFixed(2)}초)`
+            }));
+            
+            updateSegmentList(results);
+            document.getElementById('generateTimingBtn').disabled = false;
+            document.getElementById('progress').textContent = `${silenceSegments.length}개의 무음 구간 탐지 완료`;
+        }
+        
+        async function startSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('이 브라우저는 음성 인식을 지원하지 않습니다. Chrome을 사용해주세요.');
+                return;
+            }
+            
+            document.getElementById('progress').textContent = '음성 인식 시작 중...';
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'ko-KR';
+            
+            speechRecognitionResults = [];
+            const audioPlayer = document.getElementById('audioPlayer');
+            
+            recognition.onstart = () => {
+                document.getElementById('progress').textContent = '음성 인식 중... (오디오를 재생하세요)';
+                // 오디오를 처음부터 재생
+                audioPlayer.currentTime = 0;
+                audioPlayer.play();
+            };
+            
+            recognition.onresult = (event) => {
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    if (result.isFinal) {
+                        // 실제 오디오 재생 시간 사용
+                        const currentTime = audioPlayer.currentTime;
+                        speechRecognitionResults.push({
+                            text: result[0].transcript.trim(),
+                            timestamp: currentTime,
+                            confidence: result[0].confidence
+                        });
+                        
+                        // 실시간 결과 표시
+                        updateSpeechRecognitionResults();
+                    }
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('음성 인식 오류:', event.error);
+                document.getElementById('progress').textContent = `음성 인식 오류: ${event.error}`;
+            };
+            
+            recognition.onend = () => {
+                document.getElementById('progress').textContent = '음성 인식 완료 - 결과를 확인하세요';
+                document.getElementById('generateTimingBtn').disabled = false;
+            };
+            
+            // 음성 인식 시작 (오디오 재생은 onstart에서 처리)
+            recognition.start();
+            
+            // 오디오가 끝나면 음성 인식도 종료
+            audioPlayer.addEventListener('ended', () => {
+                recognition.stop();
+            }, { once: true });
+        }
+        
+        function updateSpeechRecognitionResults() {
+            const results = speechRecognitionResults.map((result, index) => ({
+                time: `${result.timestamp.toFixed(2)}s`,
+                text: `"${result.text}" (신뢰도: ${(result.confidence * 100).toFixed(1)}%)`
+            }));
+            
+            updateSegmentList(results);
+        }
+        
+        function generateAutoTiming() {
+            document.getElementById('progress').textContent = '자동 타이밍 생성 중...';
+            
+            // 무음 구간을 기반으로 대화 세그먼트 생성
+            const speechSegments = [];
+            let lastEnd = 0;
+            
+            silenceSegments.forEach(silence => {
+                if (lastEnd < silence.start) {
+                    speechSegments.push({
+                        start: lastEnd,
+                        end: silence.start
+                    });
+                }
+                lastEnd = silence.end;
+            });
+            
+            // 마지막 세그먼트
+            if (lastEnd < audioBuffer.duration) {
+                speechSegments.push({
+                    start: lastEnd,
+                    end: audioBuffer.duration
+                });
+            }
+            
+            // 텍스트와 매핑
+            generatedTimings = [];
+            
+            conversationTexts.forEach((text, index) => {
+                if (index < speechSegments.length) {
+                    const segment = speechSegments[index];
+                    const words = text.split(/\s+/);
+                    const segmentDuration = segment.end - segment.start;
+                    const wordsPerSecond = words.length / segmentDuration;
+                    
+                    let currentTime = segment.start;
+                    const segments = [];
+                    
+                    // 단어별로 시간 분할
+                    for (let i = 0; i < words.length; i += 3) { // 3단어씩 그룹화
+                        const wordGroup = words.slice(i, i + 3).join(' ');
+                        const groupDuration = Math.min(3 / wordsPerSecond, segment.end - currentTime);
+                        
+                        segments.push({
+                            text: wordGroup,
+                            startTime: parseFloat(currentTime.toFixed(1)),
+                            endTime: parseFloat((currentTime + groupDuration).toFixed(1))
+                        });
+                        
+                        currentTime += groupDuration;
+                    }
+                    
+                    generatedTimings.push({
+                        speaker: speakerPattern[index] || 1,
+                        segments: segments
+                    });
+                }
+            });
+            
+            // 결과 표시
+            const results = generatedTimings.flatMap((conv, convIndex) => 
+                conv.segments.map(seg => ({
+                    time: `${seg.startTime}s - ${seg.endTime}s`,
+                    text: `Speaker ${conv.speaker}: ${seg.text}`
+                }))
+            );
+            
+            updateSegmentList(results);
+            
+            // JSON 출력
+            const jsonOutput = document.getElementById('jsonOutput');
+            jsonOutput.value = JSON.stringify(generatedTimings, null, 2);
+            
+            document.getElementById('progress').textContent = '자동 타이밍 생성 완료!';
+        }
+        
+        function updateSegmentList(segments) {
+            const container = document.getElementById('segmentList');
+            container.innerHTML = '';
+            
+            segments.forEach(segment => {
+                const item = document.createElement('div');
+                item.className = 'segment-item';
+                item.innerHTML = `
+                    <div class="segment-time">${segment.time}</div>
+                    <div class="segment-text">${segment.text}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        function copyToClipboard() {
+            const textarea = document.getElementById('jsonOutput');
+            textarea.select();
+            document.execCommand('copy');
+            alert('클립보드에 복사되었습니다!');
+        }
+        
+        function downloadJSON() {
+            const data = document.getElementById('jsonOutput').value;
+            if (!data) {
+                alert('먼저 분석을 완료하세요.');
+                return;
+            }
+            
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'auto-generated-timings.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            URL.revokeObjectURL(url);
+        }
+        
+        function applyToChat() {
+            if (!generatedTimings.length) {
+                alert('먼저 타이밍 생성을 완료하세요.');
+                return;
+            }
+            
+            // 기존 채팅 HTML에 데이터 적용
+            const newWindow = window.open('chat-audio-sync.html', '_blank');
+            
+            // 새 창이 로드된 후 데이터 전달
+            newWindow.addEventListener('load', () => {
+                newWindow.conversations = generatedTimings;
+                newWindow.initializeChat();
+            });
+        }
+    </script>
+</body>
+</html>

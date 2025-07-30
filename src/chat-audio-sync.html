@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오디오 채팅 동기화</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .audio-control {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            background: #fafafa;
+        }
+        
+        audio {
+            width: 100%;
+        }
+        
+        .chat-container {
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            opacity: 0.3;
+            transition: opacity 0.5s ease;
+        }
+        
+        .message.active {
+            opacity: 1;
+        }
+        
+        .message.speaker1 {
+            justify-content: flex-start;
+        }
+        
+        .message.speaker2 {
+            justify-content: flex-end;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+        
+        .text-segment {
+            display: inline;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            opacity: 0.4;
+        }
+        
+        .text-segment.active {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transform: scale(1.02);
+        }
+        
+        .text-segment.completed {
+            opacity: 0.8;
+        }
+        
+        .speaker1 .message-bubble {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-bottom-left-radius: 6px;
+        }
+        
+        .speaker2 .message-bubble {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            border-bottom-right-radius: 6px;
+        }
+        
+        .speaker-name {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            opacity: 0.7;
+        }
+        
+        .controls {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            background: #fafafa;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #2196f3;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #1976d2;
+        }
+        
+        .time-display {
+            font-size: 14px;
+            color: #666;
+            margin-left: auto;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2196f3, #21cbf3);
+            border-radius: 2px;
+            transition: width 0.1s ease;
+            width: 0%;
+        }
+        
+        .waveform-visualization {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            height: 40px;
+            padding: 0 10px;
+            margin: 10px 0;
+        }
+        
+        .wave-bar {
+            width: 3px;
+            background: #ddd;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .wave-bar.active {
+            background: #2196f3;
+            transform: scaleY(1.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="audio-control">
+            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <label for="timingFile" style="display: block; margin-bottom: 5px; font-weight: 600;">타이밍 JSON 파일:</label>
+                    <input type="file" id="timingFile" accept=".json" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div>
+                    <label for="audioFile" style="display: block; margin-bottom: 5px; font-weight: 600;">오디오 파일:</label>
+                    <input type="file" id="audioFile" accept="audio/*" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <button onclick="loadCustomData()" style="margin-top: 20px; background: #4caf50;">파일 적용</button>
+            </div>
+            <audio id="audioPlayer" controls>
+                <source src="audio.wav" type="audio/wav">
+                브라우저가 오디오를 지원하지 않습니다.
+            </audio>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <!-- 메시지들이 여기에 동적으로 추가됩니다 -->
+        </div>
+        
+        <div class="controls">
+            <button onclick="resetAudio()">처음부터</button>
+            <button onclick="togglePlayPause()">재생/일시정지</button>
+            <button onclick="toggleTimingMode()" id="timingBtn">타이밍 조정</button>
+            <button onclick="resetToDefault()" style="background: #ff9800;">기본 데이터로 복원</button>
+            <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+        </div>
+        
+        <div id="timingPanel" style="display: none; padding: 20px; background: #f0f0f0; border-top: 1px solid #ddd;">
+            <h4>타이밍 조정 모드</h4>
+            <div style="margin-bottom: 10px;">
+                <label>선택된 세그먼트: </label>
+                <span id="selectedSegment">없음</span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <label>시작 시간:</label>
+                <input type="number" id="startTimeInput" step="0.1" style="width: 80px;">
+                <label>종료 시간:</label>
+                <input type="number" id="endTimeInput" step="0.1" style="width: 80px;">
+                <button onclick="updateSegmentTiming()">업데이트</button>
+                <button onclick="exportTimings()">타이밍 내보내기</button>
+            </div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="waveform-visualization" id="waveform">
+            <!-- 웨이브폼 바들이 여기에 동적으로 생성됩니다 -->
+        </div>
+    </div>
+
+    <script>
+        const audioPlayer = document.getElementById('audioPlayer');
+        const chatContainer = document.getElementById('chatContainer');
+        const timeDisplay = document.getElementById('timeDisplay');
+        
+        // 대화 데이터 - 단어/구 단위로 세분화된 타이밍
+        const conversations = [
+            {
+                speaker: 1,
+                segments: [
+                    { text: "나와 한가지 주제로", startTime: 0, endTime: 2.5 },
+                    { text: "깊이 있는 대화를 해보자.", startTime: 2.5, endTime: 5 },
+                    { text: "겉으로 보이는 것 말고", startTime: 5, endTime: 7.5 },
+                    { text: "그 안에 숨겨진 의미나 통찰을", startTime: 7.5, endTime: 10.5 },
+                    { text: "함께 찾아보는 거야.", startTime: 10.5, endTime: 12.5 },
+                    { text: "본질적인 것에 집중해서...", startTime: 12.5, endTime: 15 },
+                    { text: "첫 번째 주제는", startTime: 15, endTime: 17 },
+                    { text: "프롬프트 엔지니어링으로 해볼까?", startTime: 17, endTime: 20 }
+                ]
+            },
+            {
+                speaker: 2,
+                segments: [
+                    { text: "프롬프트 엔지니어링...", startTime: 20, endTime: 22.5 },
+                    { text: "흥미롭네요.", startTime: 22.5, endTime: 24 },
+                    { text: "얼핏 보면", startTime: 24, endTime: 25.5 },
+                    { text: "그냥 AI한테 명령 잘 내리는", startTime: 25.5, endTime: 28.5 },
+                    { text: "기술 같잖아요?", startTime: 28.5, endTime: 30.5 },
+                    { text: "근데 실제로는", startTime: 30.5, endTime: 32.5 },
+                    { text: "완전히 다른 차원의 일이더라고요.", startTime: 32.5, endTime: 36 },
+                    { text: "어떻게 보면", startTime: 36, endTime: 37.5 },
+                    { text: "우리가 새로운 언어를", startTime: 37.5, endTime: 40 },
+                    { text: "만들어내고 있는 거 같아요.", startTime: 40, endTime: 43 },
+                    { text: "AI와 대화하기 위한", startTime: 43, endTime: 45.5 },
+                    { text: "특별한 언어 말이에요.", startTime: 45.5, endTime: 48 }
+                ]
+            },
+            {
+                speaker: 1,
+                segments: [
+                    { text: "맞아,", startTime: 48, endTime: 49 },
+                    { text: "그 단어 자체부터 생각해보자.", startTime: 49, endTime: 52 },
+                    { text: "'프롬프트'가 뭐지?", startTime: 52, endTime: 54.5 },
+                    { text: "촉발하다, 유발하다...", startTime: 54.5, endTime: 57.5 },
+                    { text: "이런 의미잖아.", startTime: 57.5, endTime: 59.5 },
+                    { text: "그리고 '엔지니어링'은", startTime: 59.5, endTime: 62 },
+                    { text: "뭔가를 구조화하고,", startTime: 62, endTime: 64.5 },
+                    { text: "예측 가능하게 만들고,", startTime: 64.5, endTime: 67 },
+                    { text: "컨트롤할 수 있게 만드는 거고.", startTime: 67, endTime: 70 }
+                ]
+            },
+            {
+                speaker: 2,
+                segments: [
+                    { text: "아!", startTime: 70, endTime: 71 },
+                    { text: "그거 정말 좋은 포인트네요.", startTime: 71, endTime: 74 },
+                    { text: "프롬프트의 어원을 보면", startTime: 74, endTime: 76.5 },
+                    { text: "더 재밌어요.", startTime: 76.5, endTime: 78 },
+                    { text: "라틴어로", startTime: 78, endTime: 79.5 },
+                    { text: "'앞으로 끌어낸다'는 뜻이거든요.", startTime: 79.5, endTime: 83 },
+                    { text: "그러니까...", startTime: 83, endTime: 84.5 },
+                    { text: "우리가 뭔가 새로 만드는 게 아니라,", startTime: 84.5, endTime: 88 },
+                    { text: "이미 AI 안에 있는 걸", startTime: 88, endTime: 90.5 },
+                    { text: "끄집어내는 거죠.", startTime: 90.5, endTime: 92.5 },
+                    { text: "마치 우리가 마법사가 되어서", startTime: 92.5, endTime: 95.5 },
+                    { text: "잠들어 있는 능력을", startTime: 95.5, endTime: 97.5 },
+                    { text: "깨우는 느낌이랄까요?", startTime: 97.5, endTime: 100 }
+                ]
+            },
+            {
+                speaker: 1,
+                segments: [
+                    { text: "오,", startTime: 100, endTime: 101 },
+                    { text: "그렇게 보니까...", startTime: 101, endTime: 103 },
+                    { text: "내가 주문 외우듯이", startTime: 103, endTime: 105.5 },
+                    { text: "프롬프트를 잘 작성하면,", startTime: 105.5, endTime: 108 },
+                    { text: "내가 원하는 창조물이", startTime: 108, endTime: 110.5 },
+                    { text: "나오는 거네?", startTime: 110.5, endTime: 112 },
+                    { text: "정말 마법 같아.", startTime: 112, endTime: 114 }
+                ]
+            },
+            {
+                speaker: 2,
+                segments: [
+                    { text: "그쵸!", startTime: 114, endTime: 115 },
+                    { text: "근데 이 마법 비유가", startTime: 115, endTime: 117.5 },
+                    { text: "진짜 핵심을 찌르는 것 같아요.", startTime: 117.5, endTime: 120.5 },
+                    { text: "그럼 진짜 마법사는 누굴까요?", startTime: 120.5, endTime: 123.5 },
+                    { text: "프롬프트 쓰는 우리?", startTime: 123.5, endTime: 125.5 },
+                    { text: "아니면 그 패턴들을", startTime: 125.5, endTime: 127.5 },
+                    { text: "알고 있는 AI?", startTime: 127.5, endTime: 129.5 },
+                    { text: "아니면...", startTime: 129.5, endTime: 131 },
+                    { text: "우리 둘 다 더 큰 무언가의", startTime: 131, endTime: 134 },
+                    { text: "일부인 건 아닐까요?", startTime: 134, endTime: 136.5 }
+                ]
+            }
+        ];
+        
+        let currentMessageIndex = 0;
+        let timingMode = false;
+        let selectedSegmentInfo = null;
+        let originalConversations = null; // 기본 데이터 백업
+        
+        function initializeChat() {
+            conversations.forEach((conv, index) => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message speaker${conv.speaker}`;
+                
+                let segmentsHtml = '';
+                conv.segments.forEach((segment, segIndex) => {
+                    segmentsHtml += `<span class="text-segment" data-conv="${index}" data-seg="${segIndex}">${segment.text}</span> `;
+                });
+                
+                messageDiv.innerHTML = `
+                    <div class="message-bubble">
+                        <div class="speaker-name">Speaker ${conv.speaker}</div>
+                        ${segmentsHtml}
+                    </div>
+                `;
+                chatContainer.appendChild(messageDiv);
+            });
+        }
+        
+        function updateActiveMessage() {
+            const currentTime = audioPlayer.currentTime;
+            const messages = document.querySelectorAll('.message');
+            const allSegments = document.querySelectorAll('.text-segment');
+            
+            // 모든 세그먼트 초기화
+            allSegments.forEach(segment => {
+                segment.classList.remove('active', 'completed');
+            });
+            
+            let activeMessageFound = false;
+            
+            conversations.forEach((conv, convIndex) => {
+                const messageElement = messages[convIndex];
+                let messageActive = false;
+                let activeSegmentFound = false;
+                
+                conv.segments.forEach((segment, segIndex) => {
+                    const segmentElement = document.querySelector(`[data-conv="${convIndex}"][data-seg="${segIndex}"]`);
+                    
+                    if (currentTime >= segment.startTime && currentTime < segment.endTime) {
+                        // 현재 활성 세그먼트
+                        segmentElement.classList.add('active');
+                        messageActive = true;
+                        activeSegmentFound = true;
+                        activeMessageFound = true;
+                        
+                        // 현재 세그먼트가 보이도록 스크롤
+                        segmentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else if (currentTime > segment.endTime) {
+                        // 완료된 세그먼트
+                        segmentElement.classList.add('completed');
+                        messageActive = true;
+                    }
+                });
+                
+                if (messageActive) {
+                    messageElement.classList.add('active');
+                } else {
+                    messageElement.classList.remove('active');
+                }
+            });
+        }
+        
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function updateTimeDisplay() {
+            const current = audioPlayer.currentTime;
+            const duration = audioPlayer.duration || 0;
+            timeDisplay.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+            
+            // 프로그레스 바 업데이트
+            const progress = duration > 0 ? (current / duration) * 100 : 0;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            
+            // 웨이브폼 업데이트
+            updateWaveform(current);
+        }
+        
+        function createWaveform() {
+            const waveformContainer = document.getElementById('waveform');
+            const totalBars = 100;
+            
+            for (let i = 0; i < totalBars; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'wave-bar';
+                // 랜덤한 높이로 웨이브폼 시뮬레이션
+                const height = Math.random() * 30 + 10;
+                bar.style.height = `${height}px`;
+                waveformContainer.appendChild(bar);
+            }
+        }
+        
+        function updateWaveform(currentTime) {
+            const bars = document.querySelectorAll('.wave-bar');
+            const duration = audioPlayer.duration || 0;
+            
+            if (duration > 0) {
+                const progress = currentTime / duration;
+                const activeBars = Math.floor(progress * bars.length);
+                
+                bars.forEach((bar, index) => {
+                    if (index <= activeBars) {
+                        bar.classList.add('active');
+                    } else {
+                        bar.classList.remove('active');
+                    }
+                });
+            }
+        }
+        
+        function resetAudio() {
+            audioPlayer.currentTime = 0;
+            updateActiveMessage();
+        }
+        
+        function togglePlayPause() {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        }
+        
+        // 이벤트 리스너
+        audioPlayer.addEventListener('timeupdate', () => {
+            updateActiveMessage();
+            updateTimeDisplay();
+        });
+        
+        audioPlayer.addEventListener('loadedmetadata', updateTimeDisplay);
+        
+        function toggleTimingMode() {
+            timingMode = !timingMode;
+            const panel = document.getElementById('timingPanel');
+            const btn = document.getElementById('timingBtn');
+            
+            if (timingMode) {
+                panel.style.display = 'block';
+                btn.textContent = '타이밍 조정 종료';
+                btn.style.background = '#ff5722';
+                addSegmentClickListeners();
+            } else {
+                panel.style.display = 'none';
+                btn.textContent = '타이밍 조정';
+                btn.style.background = '#2196f3';
+                removeSegmentClickListeners();
+            }
+        }
+        
+        function addSegmentClickListeners() {
+            const segments = document.querySelectorAll('.text-segment');
+            segments.forEach(segment => {
+                segment.style.cursor = 'pointer';
+                segment.addEventListener('click', selectSegment);
+            });
+        }
+        
+        function removeSegmentClickListeners() {
+            const segments = document.querySelectorAll('.text-segment');
+            segments.forEach(segment => {
+                segment.style.cursor = 'default';
+                segment.removeEventListener('click', selectSegment);
+            });
+        }
+        
+        function selectSegment(event) {
+            if (!timingMode) return;
+            
+            const convIndex = parseInt(event.target.dataset.conv);
+            const segIndex = parseInt(event.target.dataset.seg);
+            const segment = conversations[convIndex].segments[segIndex];
+            
+            selectedSegmentInfo = { convIndex, segIndex, segment };
+            
+            // 기존 선택 제거
+            document.querySelectorAll('.text-segment.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // 새 선택 추가
+            event.target.classList.add('selected');
+            
+            // 입력 필드 업데이트
+            document.getElementById('selectedSegment').textContent = segment.text;
+            document.getElementById('startTimeInput').value = segment.startTime;
+            document.getElementById('endTimeInput').value = segment.endTime;
+        }
+        
+        function updateSegmentTiming() {
+            if (!selectedSegmentInfo) {
+                alert('세그먼트를 먼저 선택하세요.');
+                return;
+            }
+            
+            const startTime = parseFloat(document.getElementById('startTimeInput').value);
+            const endTime = parseFloat(document.getElementById('endTimeInput').value);
+            
+            if (startTime >= endTime) {
+                alert('시작 시간이 종료 시간보다 작아야 합니다.');
+                return;
+            }
+            
+            // 데이터 업데이트
+            conversations[selectedSegmentInfo.convIndex].segments[selectedSegmentInfo.segIndex].startTime = startTime;
+            conversations[selectedSegmentInfo.convIndex].segments[selectedSegmentInfo.segIndex].endTime = endTime;
+            
+            alert('타이밍이 업데이트되었습니다.');
+        }
+        
+        function exportTimings() {
+            const timingData = JSON.stringify(conversations, null, 2);
+            const blob = new Blob([timingData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'conversation-timings.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            URL.revokeObjectURL(url);
+        }
+        
+        // CSS 추가
+        const style = document.createElement('style');
+        style.textContent = `
+            .text-segment.selected {
+                background: #ffeb3b !important;
+                color: #333 !important;
+                box-shadow: 0 2px 12px rgba(255, 235, 59, 0.5) !important;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 새로운 함수들
+        async function loadCustomData() {
+            const timingFileInput = document.getElementById('timingFile');
+            const audioFileInput = document.getElementById('audioFile');
+            
+            if (!timingFileInput.files[0]) {
+                alert('타이밍 JSON 파일을 선택하세요.');
+                return;
+            }
+            
+            try {
+                // JSON 파일 로드
+                const timingFile = timingFileInput.files[0];
+                const timingText = await timingFile.text();
+                const newConversations = JSON.parse(timingText);
+                
+                // 기존 데이터 백업 (처음 한 번만)
+                if (!originalConversations) {
+                    originalConversations = JSON.parse(JSON.stringify(conversations));
+                }
+                
+                // 새 데이터 적용
+                conversations.length = 0; // 배열 비우기
+                conversations.push(...newConversations);
+                
+                // 오디오 파일이 선택되었다면 적용
+                if (audioFileInput.files[0]) {
+                    const audioPlayer = document.getElementById('audioPlayer');
+                    const audioURL = URL.createObjectURL(audioFileInput.files[0]);
+                    audioPlayer.src = audioURL;
+                    
+                    // 기존 오디오 소스 제거
+                    const existingSource = audioPlayer.querySelector('source');
+                    if (existingSource) {
+                        existingSource.remove();
+                    }
+                }
+                
+                // 채팅 화면 다시 그리기
+                rebuildChat();
+                
+                alert('새로운 타이밍 데이터가 적용되었습니다!');
+                
+            } catch (error) {
+                console.error('파일 로드 오류:', error);
+                alert('파일을 불러오는 중 오류가 발생했습니다. JSON 형식을 확인해주세요.');
+            }
+        }
+        
+        function rebuildChat() {
+            // 기존 채팅 내용 제거
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.innerHTML = '';
+            
+            // 새로운 데이터로 채팅 다시 생성
+            initializeChat();
+            
+            // 오디오 리셋
+            resetAudio();
+        }
+        
+        function resetToDefault() {
+            if (!originalConversations) {
+                alert('기본 데이터가 없습니다.');
+                return;
+            }
+            
+            // 기본 데이터로 복원
+            conversations.length = 0;
+            conversations.push(...originalConversations);
+            
+            // 기본 오디오로 복원
+            const audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.src = '';
+            audioPlayer.innerHTML = `
+                <source src="audio.wav" type="audio/wav">
+                브라우저가 오디오를 지원하지 않습니다.
+            `;
+            
+            // 파일 입력 초기화
+            document.getElementById('timingFile').value = '';
+            document.getElementById('audioFile').value = '';
+            
+            // 채팅 화면 다시 그리기
+            rebuildChat();
+            
+            alert('기본 데이터로 복원되었습니다.');
+        }
+        
+        // 파일 드래그 앤 드롭 지원
+        function setupDragAndDrop() {
+            const audioControl = document.querySelector('.audio-control');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                audioControl.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                audioControl.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                audioControl.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight(e) {
+                audioControl.style.backgroundColor = '#f0f8ff';
+                audioControl.style.border = '2px dashed #2196f3';
+            }
+            
+            function unhighlight(e) {
+                audioControl.style.backgroundColor = '';
+                audioControl.style.border = '';
+            }
+            
+            audioControl.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                for (let file of files) {
+                    if (file.type.startsWith('audio/')) {
+                        document.getElementById('audioFile').files = dt.files;
+                    } else if (file.name.endsWith('.json')) {
+                        document.getElementById('timingFile').files = dt.files;
+                    }
+                }
+            }
+        }
+        
+        // 초기화
+        initializeChat();
+        createWaveform();
+        setupDragAndDrop();
+    </script>
+</body>
+</html>

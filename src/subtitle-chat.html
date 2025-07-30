@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎙️ AI 팟캐스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .file-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+        
+        .accordion-header {
+            padding: 20px 25px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .accordion-header:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .accordion-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .accordion-icon {
+            font-size: 1.5em;
+            transition: transform 0.3s ease;
+        }
+        
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding: 0 25px;
+        }
+        
+        .accordion-content.expanded {
+            max-height: 500px;
+            padding: 0 25px 25px 25px;
+        }
+        
+        .file-section.expanded .accordion-icon {
+            transform: rotate(180deg);
+        }
+        
+        .file-inputs {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .file-input {
+            flex: 1;
+        }
+        
+        .file-input label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .file-input input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+        }
+        
+        .file-input input[type="file"]:hover {
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .load-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+        
+        .load-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+        
+        .audio-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        audio {
+            width: 100%;
+            height: 50px;
+            border-radius: 10px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            align-items: center;
+        }
+        
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .time-display {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .chat-viewer {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 30px;
+            min-height: 400px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .chat-container {
+            position: relative;
+            height: 400px;
+            overflow: hidden;
+        }
+        
+        .chat-slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 30px;
+            transition: transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+        
+        .speaker-group {
+            opacity: 1;
+            transition: all 0.6s ease;
+        }
+        
+        .speaker-group.fade-out {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        
+        .speaker-group.fade-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .message {
+            margin-bottom: 8px;
+        }
+        
+        .message:last-child {
+            margin-bottom: 0;
+        }
+        
+        .message.speaker1 {
+            text-align: left;
+        }
+        
+        .message.speaker2 {
+            text-align: right;
+        }
+        
+        .speaker-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            opacity: 0.7;
+        }
+        
+        .speaker1 .speaker-label {
+            color: #64b5f6;
+        }
+        
+        .speaker2 .speaker-label {
+            color: #f48fb1;
+        }
+        
+        .message-text {
+            font-size: 18px;
+            line-height: 1.6;
+            padding: 15px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            max-width: 80%;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            word-wrap: break-word;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+        
+        .speaker1 .message-text {
+            background: linear-gradient(135deg, #2196f3 0%, #21cbf3 100%);
+            color: white;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .speaker2 .message-text {
+            background: linear-gradient(135deg, #e91e63 0%, #f06292 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background-color: currentColor;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+            vertical-align: text-bottom;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        @keyframes typewriter {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+        
+        .typing-text {
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+            border-radius: 2px;
+            transition: width 0.1s ease;
+            width: 0%;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 20px;
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ AI 팟캐스트</h1>
+            <p>AI와 함께하는 깊이 있는 대화를 실시간 자막으로 감상하세요</p>
+        </div>
+        
+        <div class="file-section" id="fileSection">
+            <div class="accordion-header" onclick="toggleAccordion()">
+                <div class="accordion-title">
+                    <span>⚙️</span>
+                    <span>설정</span>
+                </div>
+                <div class="accordion-icon">▼</div>
+            </div>
+            <div class="accordion-content" id="accordionContent">
+                <div class="file-inputs">
+                    <div class="file-input">
+                        <label>🎵 오디오 파일</label>
+                        <input type="file" id="audioFile" accept="audio/*">
+                    </div>
+                    <div class="file-input">
+                        <label>📄 JSON 타이밍 파일</label>
+                        <input type="file" id="jsonFile" accept=".json">
+                    </div>
+                </div>
+                
+                <div id="speakerNames" style="margin-top: 20px;">
+                    <h4 style="margin-bottom: 15px; color: rgba(255,255,255,0.9);">👥 화자 이름 설정</h4>
+                    <div id="speakerInputs">
+                        <!-- 동적으로 생성됩니다 -->
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="load-btn" onclick="loadFiles()">🚀 파일 로드</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="audio-section hidden" id="audioSection">
+            <audio id="audioPlayer" controls></audio>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="controls">
+                <button class="control-btn" onclick="resetAudio()">⏮️ 처음부터</button>
+                <button class="control-btn" onclick="togglePlayPause()">⏯️ 재생/일시정지</button>
+                <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+            </div>
+        </div>
+        
+        <div class="chat-viewer">
+            <div class="status" id="status">
+                파일을 업로드하면 대화가 시작됩니다 ✨
+            </div>
+            <div class="chat-container hidden" id="chatContainer">
+                <div class="chat-slide" id="currentSlide">
+                    <!-- 현재 화자 그룹 -->
+                </div>
+                <div class="chat-slide" id="previousSlide" style="transform: translateY(-100%);">
+                    <!-- 이전 화자 그룹 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let audioPlayer;
+        let conversationData = [];
+        let currentTypingTimeout = null;
+        let filesLoaded = false;
+        let speakerNames = {
+            1: '인간',
+            2: 'AI'
+        };
+        let totalSpeakers = 0;
+        
+        function initializeApp() {
+            audioPlayer = document.getElementById('audioPlayer');
+            
+            // 오디오 이벤트 리스너
+            audioPlayer.addEventListener('timeupdate', updateProgress);
+            audioPlayer.addEventListener('loadedmetadata', updateTimeDisplay);
+            
+            console.log('🎬 자막형 채팅 뷰어 초기화 완료');
+        }
+        
+        function detectSpeakersAndCreateInputs(data) {
+            // JSON에서 화자 수 감지
+            const speakers = new Set();
+            data.forEach(conversation => {
+                speakers.add(conversation.speaker);
+            });
+            
+            totalSpeakers = speakers.size;
+            const speakerInputsContainer = document.getElementById('speakerInputs');
+            speakerInputsContainer.innerHTML = '';
+            
+            // 기본 화자 이름 설정
+            const defaultNames = ['인간', 'AI', '게스트', '호스트', '전문가'];
+            
+            Array.from(speakers).sort().forEach((speakerNum, index) => {
+                const inputDiv = document.createElement('div');
+                inputDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 10px;';
+                
+                const label = document.createElement('label');
+                label.style.cssText = 'min-width: 80px; color: rgba(255,255,255,0.8); font-size: 14px;';
+                label.textContent = `Speaker ${speakerNum}:`;
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = `speakerName${speakerNum}`;
+                input.value = speakerNames[speakerNum] || defaultNames[index] || `화자${speakerNum}`;
+                input.style.cssText = `
+                    flex: 1;
+                    padding: 8px 12px;
+                    border: 1px solid rgba(255,255,255,0.3);
+                    border-radius: 6px;
+                    background: rgba(255,255,255,0.1);
+                    color: white;
+                    font-size: 14px;
+                `;
+                
+                input.addEventListener('input', function() {
+                    speakerNames[speakerNum] = this.value;
+                    updateSpeakerLabels();
+                });
+                
+                inputDiv.appendChild(label);
+                inputDiv.appendChild(input);
+                speakerInputsContainer.appendChild(inputDiv);
+                
+                // speakerNames 업데이트
+                speakerNames[speakerNum] = input.value;
+            });
+            
+            console.log('🎭 감지된 화자 수:', totalSpeakers, '화자 이름:', speakerNames);
+        }
+        
+        function updateSpeakerLabels() {
+            // 이미 생성된 화자 레이블들 업데이트
+            const speakerLabels = document.querySelectorAll('.speaker-label');
+            speakerLabels.forEach(label => {
+                const speakerGroup = label.closest('.speaker-group');
+                const speakerNum = parseInt(speakerGroup.dataset.convIndex) + 1; // 임시로 convIndex 사용
+                
+                // 실제 speaker 번호 찾기
+                const actualSpeakerNum = conversationData.find(conv => 
+                    conversationData.indexOf(conv) === parseInt(speakerGroup.dataset.convIndex)
+                )?.speaker;
+                
+                if (actualSpeakerNum && speakerNames[actualSpeakerNum]) {
+                    label.textContent = speakerNames[actualSpeakerNum];
+                }
+            });
+        }
+        
+        async function loadFiles() {
+            const audioFile = document.getElementById('audioFile').files[0];
+            const jsonFile = document.getElementById('jsonFile').files[0];
+            
+            if (!audioFile || !jsonFile) {
+                alert('오디오 파일과 JSON 파일을 모두 선택해주세요!');
+                return;
+            }
+            
+            try {
+                // JSON 먼저 로드해서 화자 수 감지
+                const jsonText = await jsonFile.text();
+                conversationData = JSON.parse(jsonText);
+                
+                // 화자 수 감지 및 입력 필드 생성
+                detectSpeakersAndCreateInputs(conversationData);
+                
+                // 오디오 로드
+                const audioURL = URL.createObjectURL(audioFile);
+                audioPlayer.src = audioURL;
+                
+                console.log('📊 로드된 데이터:', conversationData);
+                
+                // UI 업데이트
+                document.getElementById('audioSection').classList.remove('hidden');
+                document.getElementById('status').classList.add('hidden');
+                document.getElementById('chatContainer').classList.remove('hidden');
+                
+                // 채팅 메시지 초기화
+                initializeChat();
+                filesLoaded = true;
+                
+                alert('파일 로드 완료! 🎉 화자 이름을 수정하고 오디오를 재생하세요.');
+                
+            } catch (error) {
+                console.error('파일 로드 오류:', error);
+                alert('파일을 불러오는 중 오류가 발생했습니다.');
+            }
+        }
+        
+        function initializeChat() {
+            // 모든 세그먼트를 시간 순서로 정렬
+            const allSegments = [];
+            conversationData.forEach((conversation, convIndex) => {
+                conversation.segments.forEach(segment => {
+                    allSegments.push({
+                        ...segment,
+                        speaker: conversation.speaker,
+                        convIndex: convIndex,
+                        groupIndex: allSegments.length
+                    });
+                });
+            });
+            
+            // 시작 시간 기준으로 정렬
+            allSegments.sort((a, b) => a.startTime - b.startTime);
+            
+            // 연속된 같은 화자의 세그먼트들을 그룹화
+            const groupedSegments = [];
+            let currentGroup = null;
+            
+            allSegments.forEach(segment => {
+                if (!currentGroup || currentGroup.speaker !== segment.speaker || 
+                    (segment.startTime - currentGroup.endTime > 2)) { // 2초 이상 간격이면 새 그룹
+                    
+                    if (currentGroup) {
+                        groupedSegments.push(currentGroup);
+                    }
+                    
+                    currentGroup = {
+                        speaker: segment.speaker,
+                        segments: [segment],
+                        startTime: segment.startTime,
+                        endTime: segment.endTime,
+                        groupIndex: groupedSegments.length
+                    };
+                } else {
+                    // 같은 화자의 연속된 세그먼트
+                    currentGroup.segments.push(segment);
+                    currentGroup.endTime = segment.endTime;
+                }
+            });
+            
+            if (currentGroup) {
+                groupedSegments.push(currentGroup);
+            }
+            
+            console.log('📋 시간 순서로 정렬된 그룹:', groupedSegments);
+            
+            // 정렬된 그룹을 전역 변수에 저장
+            window.sortedGroups = groupedSegments;
+            window.currentGroupIndex = -1;
+            window.previousGroupIndex = -1;
+            
+            console.log('💬 채팅 메시지 초기화 완료');
+        }
+        
+        function updateProgress() {
+            if (!filesLoaded) return;
+            
+            const currentTime = audioPlayer.currentTime;
+            const duration = audioPlayer.duration || 0;
+            
+            // 진행률 업데이트
+            const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            
+            // 현재 활성 메시지 찾기 및 타이핑 효과
+            updateActiveMessage(currentTime);
+            updateTimeDisplay();
+        }
+        
+        function updateActiveMessage(currentTime) {
+            if (!window.sortedGroups) return;
+            
+            // 현재 활성 그룹 찾기
+            let activeGroupIndex = -1;
+            for (let i = 0; i < window.sortedGroups.length; i++) {
+                const group = window.sortedGroups[i];
+                if (currentTime >= group.startTime && currentTime < group.endTime) {
+                    activeGroupIndex = i;
+                    break;
+                }
+            }
+            
+            // 활성 그룹이 변경되었을 때만 슬라이드 업데이트
+            if (activeGroupIndex !== window.currentGroupIndex && activeGroupIndex !== -1) {
+                slideToGroup(activeGroupIndex, currentTime);
+            }
+            
+            // 현재 활성 그룹의 타이핑 업데이트
+            if (activeGroupIndex !== -1) {
+                const group = window.sortedGroups[activeGroupIndex];
+                const currentSlide = document.getElementById('currentSlide');
+                const typingTextElement = currentSlide.querySelector('.typing-text');
+                
+                if (typingTextElement) {
+                    const currentSegment = group.segments.find(seg => 
+                        currentTime >= seg.startTime && currentTime < seg.endTime
+                    );
+                    
+                    if (currentSegment && typingTextElement.dataset.currentSegment !== currentSegment.text) {
+                        startSegmentTyping(typingTextElement, group, currentSegment, currentTime);
+                    }
+                }
+            }
+        }
+        
+        function slideToGroup(groupIndex, currentTime) {
+            const group = window.sortedGroups[groupIndex];
+            const currentSlide = document.getElementById('currentSlide');
+            const previousSlide = document.getElementById('previousSlide');
+            
+            // 이전 그룹을 previous 슬라이드로 이동
+            if (window.currentGroupIndex !== -1 && window.currentGroupIndex < groupIndex) {
+                const prevGroup = window.sortedGroups[window.currentGroupIndex];
+                previousSlide.innerHTML = '';
+                previousSlide.appendChild(createSpeakerGroup(prevGroup, true)); // 완료된 상태로
+            } else {
+                previousSlide.innerHTML = '';
+            }
+            
+            // 현재 그룹을 current 슬라이드에 표시
+            currentSlide.innerHTML = '';
+            currentSlide.appendChild(createSpeakerGroup(group, false));
+            
+            // 슬라이드 애니메이션
+            if (window.currentGroupIndex !== -1) {
+                // 위로 슬라이드
+                previousSlide.style.transform = 'translateY(0%)';
+                currentSlide.style.transform = 'translateY(100%)';
+                
+                setTimeout(() => {
+                    previousSlide.style.transform = 'translateY(-100%)';
+                    currentSlide.style.transform = 'translateY(0%)';
+                }, 50);
+            } else {
+                // 첫 번째 그룹
+                currentSlide.style.transform = 'translateY(0%)';
+                previousSlide.style.transform = 'translateY(-100%)';
+            }
+            
+            window.previousGroupIndex = window.currentGroupIndex;
+            window.currentGroupIndex = groupIndex;
+            
+            console.log(`📱 슬라이드 이동: 그룹 ${groupIndex} (화자${group.speaker})`);
+        }
+        
+        function createSpeakerGroup(group, isCompleted = false) {
+            const speakerGroupDiv = document.createElement('div');
+            speakerGroupDiv.className = `speaker-group speaker${group.speaker}`;
+            
+            // 메시지 전체 컨테이너
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message speaker${group.speaker}`;
+            
+            // 화자 레이블
+            const speakerLabelDiv = document.createElement('div');
+            speakerLabelDiv.className = 'speaker-label';
+            speakerLabelDiv.textContent = speakerNames[group.speaker] || `Speaker ${group.speaker}`;
+            messageDiv.appendChild(speakerLabelDiv);
+            
+            // 메시지 컨테이너
+            const messageContainer = document.createElement('div');
+            messageContainer.className = `message-text speaker${group.speaker}`;
+            
+            // 텍스트 스팬
+            const allText = group.segments.map(seg => seg.text).join(' ');
+            const typingSpan = document.createElement('span');
+            typingSpan.className = 'typing-text';
+            typingSpan.dataset.text = allText;
+            
+            if (isCompleted) {
+                // 완료된 텍스트는 즉시 표시
+                typingSpan.innerHTML = allText;
+                typingSpan.dataset.completed = 'true';
+            } else {
+                // 새로운 텍스트는 비어있는 상태로 시작
+                typingSpan.innerHTML = '';
+            }
+            
+            messageContainer.appendChild(typingSpan);
+            messageDiv.appendChild(messageContainer);
+            speakerGroupDiv.appendChild(messageDiv);
+            
+            // 그룹 데이터 저장
+            speakerGroupDiv.groupData = group;
+            
+            return speakerGroupDiv;
+        }
+        
+        function startSegmentTyping(element, group, currentSegment, currentTime) {
+            // 기존 타이핑 중단
+            if (currentTypingTimeout) {
+                clearTimeout(currentTypingTimeout);
+                currentTypingTimeout = null;
+            }
+            
+            element.dataset.isTyping = 'true';
+            element.dataset.currentSegment = currentSegment.text;
+            
+            // 현재까지 완료된 세그먼트들의 텍스트 + 현재 세그먼트
+            let completedText = '';
+            let currentSegmentStarted = false;
+            
+            for (const segment of group.segments) {
+                if (segment.startTime < currentTime) {
+                    if (segment.endTime <= currentTime) {
+                        // 완료된 세그먼트
+                        completedText += segment.text + ' ';
+                    } else if (segment === currentSegment) {
+                        // 현재 타이핑 중인 세그먼트
+                        currentSegmentStarted = true;
+                        break;
+                    }
+                }
+            }
+            
+            // 현재 세그먼트의 타이핑 진행도 계산
+            const segmentDuration = currentSegment.endTime - currentSegment.startTime;
+            const elapsedInSegment = currentTime - currentSegment.startTime;
+            const progressRatio = Math.min(1, Math.max(0, elapsedInSegment / segmentDuration));
+            
+            const segmentText = currentSegment.text;
+            const typedLength = progressRatio >= 0.90 ? segmentText.length : Math.floor(segmentText.length * progressRatio);
+            const currentTypedText = segmentText.substring(0, typedLength);
+            
+            // 전체 텍스트 업데이트
+            if (typedLength < segmentText.length) {
+                element.innerHTML = completedText + currentTypedText + '<span class="typing-cursor"></span>';
+                
+                // 남은 시간에 맞춰 계속 타이핑
+                const remainingTime = (currentSegment.endTime - currentTime) * 1000;
+                const remainingChars = segmentText.length - typedLength;
+                const typingSpeed = remainingChars > 0 ? Math.max(50, remainingTime / remainingChars) : 100;
+                
+                function continueTyping() {
+                    const now = audioPlayer.currentTime;
+                    if (now >= currentSegment.endTime - 0.05) {
+                        // 세그먼트 완료
+                        element.innerHTML = completedText + segmentText + ' ';
+                        return;
+                    }
+                    
+                    const newProgressRatio = Math.min(1, (now - currentSegment.startTime) / segmentDuration);
+                    const newTypedLength = newProgressRatio >= 0.90 ? segmentText.length : Math.floor(segmentText.length * newProgressRatio);
+                    const newCurrentTypedText = segmentText.substring(0, newTypedLength);
+                    
+                    if (newTypedLength < segmentText.length) {
+                        element.innerHTML = completedText + newCurrentTypedText + '<span class="typing-cursor"></span>';
+                        currentTypingTimeout = setTimeout(continueTyping, 50);
+                    } else {
+                        element.innerHTML = completedText + segmentText + ' ';
+                    }
+                }
+                
+                currentTypingTimeout = setTimeout(continueTyping, typingSpeed);
+            } else {
+                // 세그먼트 완료
+                element.innerHTML = completedText + segmentText + ' ';
+            }
+        }
+        
+        function finishTyping(element) {
+            const fullText = element.dataset.text;
+            element.innerHTML = fullText;
+            element.dataset.isTyping = 'false';
+            element.dataset.completed = 'true';
+            
+            if (currentTypingTimeout) {
+                clearTimeout(currentTypingTimeout);
+                currentTypingTimeout = null;
+            }
+        }
+        
+        function resetTyping(element) {
+            // 모든 타이핑 관련 상태 클리어
+            element.innerHTML = '';
+            element.dataset.isTyping = 'false';
+            element.dataset.completed = 'false';
+            element.dataset.currentSegment = '';
+            
+            // 타이머 클리어
+            if (currentTypingTimeout) {
+                clearTimeout(currentTypingTimeout);
+                currentTypingTimeout = null;
+            }
+        }
+        
+        function updateTimeDisplay() {
+            const current = audioPlayer.currentTime;
+            const duration = audioPlayer.duration || 0;
+            
+            const currentMin = Math.floor(current / 60);
+            const currentSec = Math.floor(current % 60);
+            const durationMin = Math.floor(duration / 60);
+            const durationSec = Math.floor(duration % 60);
+            
+            document.getElementById('timeDisplay').textContent = 
+                `${currentMin.toString().padStart(2, '0')}:${currentSec.toString().padStart(2, '0')} / ${durationMin.toString().padStart(2, '0')}:${durationSec.toString().padStart(2, '0')}`;
+        }
+        
+        function resetAudio() {
+            audioPlayer.currentTime = 0;
+            
+            // 슬라이드 상태 리셋
+            window.currentGroupIndex = -1;
+            window.previousGroupIndex = -1;
+            
+            // 슬라이드 초기화
+            const currentSlide = document.getElementById('currentSlide');
+            const previousSlide = document.getElementById('previousSlide');
+            
+            currentSlide.innerHTML = '';
+            previousSlide.innerHTML = '';
+            currentSlide.style.transform = 'translateY(0%)';
+            previousSlide.style.transform = 'translateY(-100%)';
+            
+            // 타이핑 타이머 클리어
+            if (currentTypingTimeout) {
+                clearTimeout(currentTypingTimeout);
+                currentTypingTimeout = null;
+            }
+            
+            console.log('🔄 오디오 및 슬라이드 리셋 완료');
+        }
+        
+        function togglePlayPause() {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        }
+        
+        // 드래그 앤 드롭 지원
+        function setupDragAndDrop() {
+            const fileSection = document.querySelector('.file-section');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileSection.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            fileSection.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                for (let file of files) {
+                    if (file.type.startsWith('audio/')) {
+                        document.getElementById('audioFile').files = dt.files;
+                    } else if (file.name.endsWith('.json')) {
+                        document.getElementById('jsonFile').files = dt.files;
+                    }
+                }
+            }
+        }
+        
+        function toggleAccordion() {
+            const fileSection = document.getElementById('fileSection');
+            const accordionContent = document.getElementById('accordionContent');
+            
+            fileSection.classList.toggle('expanded');
+            accordionContent.classList.toggle('expanded');
+        }
+        
+        // 기본 파일 로드 함수
+        async function loadDefaultFiles() {
+            try {
+                // 기본 JSON 파일 먼저 로드해서 화자 수 감지
+                const jsonResponse = await fetch('whisper-analysis.json');
+                if (jsonResponse.ok) {
+                    const jsonData = await jsonResponse.json();
+                    conversationData = jsonData;
+                    
+                    // 화자 수 감지 및 입력 필드 생성
+                    detectSpeakersAndCreateInputs(conversationData);
+                    
+                    console.log('✅ 기본 JSON 파일 로드 완료');
+                } else {
+                    console.log('⚠️ whisper-analysis.json 파일을 찾을 수 없습니다');
+                    return;
+                }
+                
+                // 기본 오디오 파일 로드
+                const audioResponse = await fetch('audio.wav');
+                if (audioResponse.ok) {
+                    const audioBlob = await audioResponse.blob();
+                    const audioURL = URL.createObjectURL(audioBlob);
+                    audioPlayer.src = audioURL;
+                    console.log('✅ 기본 오디오 파일 로드 완료');
+                } else {
+                    console.log('⚠️ audio.wav 파일을 찾을 수 없습니다');
+                    return;
+                }
+                
+                // UI 업데이트
+                document.getElementById('audioSection').classList.remove('hidden');
+                document.getElementById('status').classList.add('hidden');
+                document.getElementById('chatContainer').classList.remove('hidden');
+                
+                // 채팅 메시지 초기화
+                initializeChat();
+                filesLoaded = true;
+                
+                console.log('🎉 기본 파일들이 자동으로 로드되었습니다!');
+                
+            } catch (error) {
+                console.log('⚠️ 기본 파일 로드 중 오류:', error.message);
+                console.log('💡 수동으로 파일을 업로드해주세요');
+            }
+        }
+        
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+            setupDragAndDrop();
+            
+            // 기본 파일들 자동 로드 시도
+            setTimeout(() => {
+                loadDefaultFiles();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
